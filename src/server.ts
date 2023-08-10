@@ -75,6 +75,22 @@ app.delete("/collections/:id", async (req, res) => {
   }
 });
 
+app.get("/collections/:id/flashcards", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    //For this to be successful, must connect to db
+    const collection = await client.query(
+      "select * from flashcards where collection = $1",
+      [id]
+    );
+    res.status(200).json({ status: "success", data: { collection } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
+  }
+});
+
 app.put("/collections/:id", async (req, res) => {
   const { name } = req.body;
   const id = req.params.id;
