@@ -1,19 +1,10 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import {
-  addDummyDbItems,
-  addDbItem,
-  getAllDbItems,
-  getDbItemById,
-  DbItem,
-  updateDbItemById,
-} from "./db";
-import filePath from "./filePath";
+import { Client } from "pg";
 
 // loading in some dummy items into the database
 // (comment out if desired, or change the number)
-addDummyDbItems(20);
 
 const app = express();
 
@@ -27,58 +18,91 @@ dotenv.config();
 
 // use the environment variable PORT, or 4000 as a fallback
 const PORT_NUMBER = process.env.PORT ?? 4000;
-
-// API info page
-app.get("/", (req, res) => {
-  const pathToFile = filePath("../public/index.html");
-  res.sendFile(pathToFile);
+const connectionString = process.env.DATABASE_URL;
+const client = new Client({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
 });
 
-// GET /items
-app.get("/items", (req, res) => {
-  const allSignatures = getAllDbItems();
-  res.status(200).json(allSignatures);
+app.get("/", async (req, res) => {
+  res.json({ msg: "Hello! There's nothing interesting for GET /" });
 });
 
-// POST /items
-app.post<{}, {}, DbItem>("/items", (req, res) => {
-  // to be rigorous, ought to handle non-conforming request bodies
-  // ... but omitting this as a simplification
-  const postData = req.body;
-  const createdSignature = addDbItem(postData);
-  res.status(201).json(createdSignature);
-});
-
-// GET /items/:id
-app.get<{ id: string }>("/items/:id", (req, res) => {
-  const matchingSignature = getDbItemById(parseInt(req.params.id));
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
-  } else {
-    res.status(200).json(matchingSignature);
+app.get("/collections", async (req, res) => {
+  try {
+    //For this to be successful, must connect to db
+    const collections = await client.query(
+      "select * from collections where owner_id = $1",
+      [1]
+    );
+    res.status(200).json({ status: "success", data: { collections } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
   }
 });
 
-// DELETE /items/:id
-app.delete<{ id: string }>("/items/:id", (req, res) => {
-  const matchingSignature = getDbItemById(parseInt(req.params.id));
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
-  } else {
-    res.status(200).json(matchingSignature);
+app.post("/collections", async (req, res) => {
+  const { name } = req.body;
+  try {
+    //For this to be successful, must connect to db
+    const createdCollection = await client.query(
+      "insert into collections (owner_id, name) values ($1, $2) returning *",
+      [1, name]
+    );
+    res.status(200).json({ status: "success", data: { createdCollection } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
   }
 });
 
-// PATCH /items/:id
-app.patch<{ id: string }, {}, Partial<DbItem>>("/items/:id", (req, res) => {
-  const matchingSignature = updateDbItemById(parseInt(req.params.id), req.body);
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
-  } else {
-    res.status(200).json(matchingSignature);
+app.delete("/collections/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    //For this to be successful, must connect to db
+    const deletedCollection = await client.query(
+      "delete from collections where id = $1 returning *",
+      [id]
+    );
+    res.status(200).json({ status: "success", data: { deletedCollection } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
   }
 });
 
-app.listen(PORT_NUMBER, () => {
-  console.log(`Server is listening on port ${PORT_NUMBER}!`);
+app.put("/collections/:id", async (req, res) => {
+  const { name } = req.body;
+  const id = req.params.id;
+  try {
+    //For this to be successful, must connect to db
+    const deletedCollection = await client.query(
+      "update collections set name = $2 where id = $1 returning *",
+      [id, name]
+    );
+    res.status(200).json({ status: "success", data: { deletedCollection } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
+  }
 });
+
+connectToDBAndStartListening();
+
+async function connectToDBAndStartListening() {
+  console.log("Attempting to connect to db");
+  await client.connect();
+  console.log("Connected to db!");
+
+  const port = PORT_NUMBER;
+  app.listen(port, () => {
+    console.log(
+      `Server started listening for HTTP requests on port ${port}.  Let's go!`
+    );
+  });
+}
