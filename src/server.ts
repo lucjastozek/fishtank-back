@@ -31,7 +31,7 @@ app.get("/", async (req, res) => {
 app.get("/collections", async (req, res) => {
   try {
     //For this to be successful, must connect to db
-    const collections = await client.query("select * from collections", [1]);
+    const collections = await client.query("select * from collections");
     res.status(200).json({ status: "success", data: { collections } });
   } catch (error) {
     //Recover from error rather than letting system halt
