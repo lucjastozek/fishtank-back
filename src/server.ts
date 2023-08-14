@@ -31,13 +31,24 @@ app.get("/", async (req, res) => {
 app.get("/collections", async (req, res) => {
   try {
     //For this to be successful, must connect to db
-    const collections = await client.query(
-      "select * from collections where owner_id = $1",
-      [1]
-    );
+    const collections = await client.query("select * from collections", [1]);
     res.status(200).json({ status: "success", data: { collections } });
   } catch (error) {
     //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
+  }
+});
+
+app.get("/collections/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const collections = await client.query(
+      "select * from collections where id = $1",
+      [id]
+    );
+    res.status(200).json({ status: "success", data: { collections } });
+  } catch (error) {
     console.error(error);
     res.status(500).send("An error occurred. Check server logs.");
   }
