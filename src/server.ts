@@ -70,6 +70,24 @@ app.post("/collections", async (req, res) => {
   }
 });
 
+app.post("/collections/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { question, answer } = req.body;
+
+  try {
+    //For this to be successful, must connect to db
+    const deletedCollection = await client.query(
+      "insert into flashcards (collection, question, answer) values ($1, $2, $3) returning *",
+      [id, question, answer]
+    );
+    res.status(200).json({ status: "success", data: { deletedCollection } });
+  } catch (error) {
+    //Recover from error rather than letting system halt
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
+  }
+});
+
 app.delete("/collections/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   try {
