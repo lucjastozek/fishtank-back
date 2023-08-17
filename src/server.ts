@@ -72,6 +72,21 @@ app.get("/collections", async (req, res) => {
   }
 });
 
+app.get("/collections/user/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const collections = await client.query(
+      "select * from collections where owner_id = $1",
+      [id]
+    );
+    res.status(200).json({ status: "success", data: { collections } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("An error occurred. Check server logs.");
+  }
+});
+
 app.get("/collections/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   try {
