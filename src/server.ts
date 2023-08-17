@@ -23,12 +23,11 @@ app.post("/register", async (req, res) => {
     const { username, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await client.query(
-      "INSERT INTO users (username, password) VALUES ($1, $2)",
+    const user = await client.query(
+      "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
       [username, hashedPassword]
     );
-
-    res.status(201).json({ message: "User registered succesfully" });
+    res.status(200).json({ status: "success", user: user.rows[0].id });
   } catch (error) {
     console.error(`Error: ${error}`);
     res.status(500).json({ message: "An error occurred" });
@@ -49,7 +48,7 @@ app.post("/login", async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.rows[0].password);
 
     if (validPassword) {
-      res.status(200).json({ message: "Login successful" });
+      res.status(200).json({ status: "success", user: user.rows[0].id });
     } else {
       res.status(401).json({ message: "Authentication failed" });
     }
