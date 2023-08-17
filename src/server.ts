@@ -27,13 +27,11 @@ app.post("/register", async (req, res) => {
       "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
       [username, hashedPassword]
     );
-    res
-      .status(200)
-      .json({
-        status: "success",
-        user: user.rows[0].id,
-        username: user.rows[0].username,
-      });
+    res.status(200).json({
+      status: "success",
+      user: user.rows[0].id,
+      username: user.rows[0].username,
+    });
   } catch (error) {
     console.error(`Error: ${error}`);
     res.status(500).json({ message: "An error occurred" });
@@ -54,13 +52,11 @@ app.post("/login", async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.rows[0].password);
 
     if (validPassword) {
-      res
-        .status(200)
-        .json({
-          status: "success",
-          user: user.rows[0].id,
-          username: user.rows[0].username,
-        });
+      res.status(200).json({
+        status: "success",
+        user: user.rows[0].id,
+        username: user.rows[0].username,
+      });
     } else {
       res.status(401).json({ message: "Authentication failed" });
     }
